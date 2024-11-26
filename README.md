@@ -1,10 +1,10 @@
 # Link Note
 
-Link Note 是一个免费开源的本地优先笔记应用，支持 Markdown 编辑、AI 辅助写作、文件关联等功能。文件存储在浏览器 IndexedDB 中，不依赖任何云服务。 
+Link Note 是一个免费开源的本地优先笔记应用，支持 Markdown 编辑、AI 辅助写作、文件关联等功能。文件存储在浏览器 IndexedDB 中，不依赖任何云服务。
 
 可自行配置各个大模型的apikey,和提示词辅助写作, 只要支持openai的api都可以使用.
 
-在线演示: [https://link-note.vercel.app/](https://link-note.vercel.app/)
+在线演示: [https://link-note-eight.vercel.app/](https://link-note-eight.vercel.app/)
 
 ## 特性
 
