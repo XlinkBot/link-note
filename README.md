@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Link Note
 
-## Getting Started
+Link Note 是一个免费开源的本地优先笔记应用，支持 Markdown 编辑、AI 辅助写作、文件关联等功能。文件存储在浏览器 IndexedDB 中，不依赖任何云服务。 
 
-First, run the development server:
+可自行配置各个大模型的apikey,和提示词辅助写作, 只要支持openai的api都可以使用.
+
+在线演示: [https://link-note.vercel.app/](https://link-note.vercel.app/)
+
+## 特性
+
+- 📝 支持 Markdown 编辑和实时预览
+- 🤖 内置 AI 助手，辅助写作和内容生成
+- 🔗 文件关联功能，轻松建立知识网络
+- 💾 本地优先存储，数据安全可控
+- 🔍 全文搜索功能
+- 📁 文件夹组织和拖拽排序
+
+
+## 技术栈
+
+- Next.js 14
+- React 18
+- TypeScript
+- TipTap
+- IndexedDB
+- Tailwind CSS
+- Lucide Icons
+- Shadcn UI
+
+## 快速开始
+
+### 环境要求
+
+- Node.js 18+
+- pnpm 8+
+
+### 安装
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 运行
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+pnpm dev
+```

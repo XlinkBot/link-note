@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Plus, Upload, FileText, Clock, Command, FileJson, FileSpreadsheet, Loader2 } from "lucide-react"
+import { Plus, Upload, FileText, Clock, Command } from "lucide-react"
 import { FileUpload } from './FileUpload'
 import { useFiles } from '@/contexts/FileContext'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -10,64 +10,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { FileItem, Tempfile } from '@/types/file'
 
-// 文件模板定义
-const FILE_TEMPLATES = [
-  {
-    name: '空白文件',
-    extension: '.md',
-    icon: <FileText className="h-4 w-4" />,
-    content: ''
-  },
-  {
-    name: 'Markdown 文档',
-    extension: '.md',
-    icon: <FileText className="h-4 w-4" />,
-    content: `# 标题
-
-## 简介
-
-这是一个 Markdown 文档模板。
-
-## 功能特性
-
-- 支持 Markdown 语法
-- 实时预览
-- AI 辅助编辑
-
-## 使用说明
-
-1. 第一步
-2. 第二步
-3. 第三步
-`
-  },
-  {
-    name: 'CSV 表格',
-    extension: '.csv',
-    icon: <FileSpreadsheet className="h-4 w-4" />,
-    content: 'ID,名称,描述\n1,示例1,这是第一个示例\n2,示例2,这是第二个示例'
-  },
-  {
-    name: 'JSON 配置',
-    extension: '.json',
-    icon: <FileJson className="h-4 w-4" />,
-    content: `{
-  "name": "项目名称",
-  "version": "1.0.0",
-  "description": "项目描述",
-  "settings": {
-    "theme": "light",
-    "language": "zh-CN"
-  }
-}`
-  }
-]
-
 // 支持的文件格式说明
 const SUPPORTED_FORMATS = [
   { extension: '.md', name: 'Markdown', description: '支持富文本编辑、实时预览' },
-  { extension: '.csv', name: 'CSV 表格', description: '支持表格编辑、数据分析' },
-  { extension: '.json', name: 'JSON', description: '支持语法高亮、格式化' },
   { extension: '.txt', name: '文本文件', description: '支持基础文本编辑' }
 ]
 
@@ -77,7 +22,6 @@ export const EmptyState: React.FC = () => {
   const [error, setError] = React.useState<string | null>(null)
   const [isCreating, setIsCreating] = React.useState(false)
   const [recentFiles, setRecentFiles] = React.useState<(FileItem | Tempfile)[]>([])
-  const [showTemplates, setShowTemplates] = React.useState(false)
 
   // 加载最近文件
   useEffect(() => {
@@ -86,14 +30,13 @@ export const EmptyState: React.FC = () => {
     const loadRecentFiles = async () => {
       try {
         const files = await refreshFiles();
-        if (!mounted) return; // 如果组件已卸载，不更新状态
+        if (!mounted) return;
         
         const sortedFiles = files
           .filter(f => f.type === 'file')
           .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
           .slice(0, 3);
         
-        console.log("[EmptyState] Sorted recent files:", sortedFiles);
         setRecentFiles(sortedFiles);
       } catch (error) {
         if (!mounted) return;
@@ -113,14 +56,11 @@ export const EmptyState: React.FC = () => {
     try {
       let lastCreatedFile = null
       for (const file of files) {
-        // 创建本地文件
-        const localFile = await createTempFile('file')
+        const localFile = await createTempFile(null)
         if (!localFile) continue
 
-        // 读取文件内容
         const content = await file.text()
         
-        // 保存文件到 IndexedDB
         const savedFile = await saveFile(
           localFile.id, 
           content,
@@ -133,7 +73,6 @@ export const EmptyState: React.FC = () => {
       setShowUploadDialog(false)
       setError(null)
 
-      // 如果有文件创建成功，选中该文件
       if (lastCreatedFile) {
         selectFile(lastCreatedFile)
       }
@@ -143,26 +82,13 @@ export const EmptyState: React.FC = () => {
     }
   }
 
-  // 处理新建文
-  const handleCreateFile = async (template?: typeof FILE_TEMPLATES[0]) => {
+  // 处理新建文件
+  const handleCreateFile = async () => {
     setIsCreating(true);
     try {
-      // 等待文件创建完成
-      const localFile = await createTempFile('file');
+      const localFile = await createTempFile(null);
       if (!localFile) return;
-
-      if (template) {
-        // 更新文件内容
-        await saveFile(
-          localFile.id,
-          template.content,
-          template.name,
-          undefined
-        );
-      }
-
       setError(null);
-      setShowTemplates(false);
     } catch (error) {
       console.error('Error creating file:', error);
       setError(error instanceof Error ? error.message : '创建文件失败，请重试');
@@ -244,18 +170,14 @@ export const EmptyState: React.FC = () => {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => setShowTemplates(true)}
+                  onClick={handleCreateFile}
                   variant="outline"
                   className="w-full h-24 flex flex-col items-center justify-center gap-2 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors"
                   disabled={isCreating}
                 >
-                  {isCreating ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <Plus className="h-6 w-6" />
-                  )}
+                  <Plus className="h-6 w-6" />
                   <div className="space-y-1">
-                    <span>{isCreating ? '创建中...' : '新建文件'}</span>
+                    <span>新建文件</span>
                     <div className="flex items-center justify-center gap-1 text-xs text-gray-400">
                       <Command className="h-3 w-3" />
                       <span>Ctrl + N</span>
@@ -264,7 +186,7 @@ export const EmptyState: React.FC = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>从模板创建或新建空白文件</p>
+                <p>新建空白文件</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -293,33 +215,6 @@ export const EmptyState: React.FC = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-
-        {/* 文件模板选择 */}
-        {showTemplates && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-gray-700">选择模板</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {FILE_TEMPLATES.map(template => (
-                <Button
-                  key={template.name}
-                  variant="outline"
-                  className="h-auto p-4 flex flex-col items-center gap-2"
-                  onClick={() => handleCreateFile(template)}
-                  disabled={isCreating}
-                >
-                  {isCreating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    template.icon
-                  )}
-                  <span className="text-sm">
-                    {isCreating ? '创建中...' : template.name}
-                  </span>
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* 支持的文件格式 */}
         <div className="space-y-2">
