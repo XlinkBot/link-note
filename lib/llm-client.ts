@@ -21,7 +21,7 @@ export async function getCompletions(
 ): Promise<string> {
   const fileDB = getFileDB();
   const config = await fileDB.getConfig();
-  
+  console.log('getCompletions', config)
   // 构建消息数组
   const messages = options.messages || [{ role: 'user' as const, content: prompt }];
 
@@ -87,6 +87,8 @@ export async function getStreamingCompletion(
 ) {
   const fileDB = getFileDB();
   const config = await fileDB.getConfig();
+
+  console.log('getStreamingCompletion', config)
   
   // 构建消息数组
   const messages = options.messages || [{ role: 'user' as const, content: prompt }];

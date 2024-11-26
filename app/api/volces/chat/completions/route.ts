@@ -3,8 +3,17 @@ import { NextRequest } from 'next/server'
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const apiKey = req.headers.get('Authorization')?.replace('Bearer ', '')
+    //const apiKey = req.headers.get('Authorization')?.replace('Bearer ', '')
     const useStream = body.stream ?? true
+
+    const apiKey = process.env.VOLCES_API_KEY
+    if (!apiKey) {
+      throw new Error('VOLCES_API_KEY is not set')
+    }
+    const model = process.env.VOLCES_MODEL
+    if (!model) {
+      throw new Error('VOLCES_MODEL is not set')
+    }
 
     const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/chat/completions', {
       method: 'POST',
@@ -14,6 +23,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         ...body,
+        model: model,
         stream: useStream,
       }),
     })

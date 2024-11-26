@@ -47,7 +47,6 @@ export const AutoComplete = Extension.create<AutoCompleteOptions>({
 
       setLoading: (isLoading: boolean): Command => ({ editor }) => {
         editor.storage.autoComplete.isLoading = isLoading
-        console.log('[AutoComplete] setLoading', isLoading)
         return true
       },
 
@@ -89,15 +88,12 @@ export const AutoComplete = Extension.create<AutoCompleteOptions>({
 
             const suggestion = this.editor?.storage.autoComplete.suggestion
             const isLoading = this.editor?.storage.autoComplete.isLoading
-            console.log('[AutoComplete] suggestion', suggestion)
-            console.log('[AutoComplete] isLoading', isLoading)
             //if (!suggestion && !isLoading) return DecorationSet.empty
             
             const pos = tr.selection.$head.pos
             const decorations: Decoration[] = []
            
             if (isLoading) {
-              console.log('[AutoComplete] isLoading pushing loading icon', isLoading)
               const loadingWidget = document.createElement('span')
               loadingWidget.className = 'auto-complete-loading'
               decorations.push(

@@ -81,9 +81,9 @@ const API_BASE_URL = {
 
 const DEFAULT_CONFIG: PromptConfig = {
   id: 'default',
-  model_provider: 'yilightning',
-  model_name: 'yi-34b-chat',
-  api_url: 'https://api.lingyiwanwu.com/v1',
+  model_provider: 'volces',
+  model_name: 'chatglm-4',
+  api_url: 'https://ark.cn-beijing.volces.com/api/v3',
   api_key: '',
   autocomplete_system_prompt: `你是一个专业的写作助手。请根据上下文和用户的选择，推测建议后续的文本
 可用的上下文信息：
@@ -118,7 +118,7 @@ const DEFAULT_CONFIG: PromptConfig = {
 const PROMPT_VARIABLES = [
   { id: 'selection', label: 'Selection', description: '当前选中的文本内容' },
   { id: 'context', label: 'Context', description: '当前文档的完整内容' },
-  { id: 'reference', label: 'Reference', description: '当前文档的所有引用内容' },
+  { id: 'reference', label: 'Reference', description: '��前文档的所有引用内容' },
 ] as const;
 
 export const PromptConfig = () => {
