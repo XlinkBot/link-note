@@ -51,7 +51,7 @@ function getFileIcon(fileName: string) {
 export const FileManager: React.FC = () => {
   const { 
     refreshFiles, 
-    createTempFile, 
+    createFileItem, 
     createDirectory,
     createFile,
     updateFile,
@@ -83,7 +83,7 @@ export const FileManager: React.FC = () => {
       const filesData = await refreshFiles()
       console.log("[FileManager] Received files before filtering:", filesData);
       // 过滤掉临时文件
-      const permanentFiles = filesData.filter(file => !('isTemp' in file) || !file.isTemp);
+      const permanentFiles = filesData.filter(file => !(file.isTemp) || !file.isTemp);
       console.log("[FileManager] Received files:", permanentFiles);
       setFiles(permanentFiles)
     } catch (error) {
@@ -234,7 +234,7 @@ export const FileManager: React.FC = () => {
   const handleCreateFile = async (parentFolderId: string | null) => {
     try {
       console.log('Creating new file in folder:', parentFolderId)
-      const newFile = createTempFile(parentFolderId)
+      const newFile = createFileItem(parentFolderId)
       console.log('New file created:', newFile)
       
     } catch (error) {

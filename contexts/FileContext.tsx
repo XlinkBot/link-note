@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getFileDB } from "@/lib/indexeddb";
 import { BaseFileItem } from "@/types/file";
-import { FILE_EVENTS, FileContextType, FileItem, Tempfile } from "@/types/file";
+import { FILE_EVENTS, FileContextType, FileItem } from "@/types/file";
 import { FileEvent, FileEventType, FileEventDetail } from "@/types/file";
 
 
@@ -17,9 +17,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [autoSaveInterval, setAutoSaveInterval] = useState(30000);
-  const [openFiles, setOpenFiles] = useState<(FileItem | Tempfile)[]>([]);
+  const [openFiles, setOpenFiles] = useState<(FileItem | FileItem)[]>([]);
   const [currentEditingFile, setCurrentEditingFile] = useState<
-    (FileItem | Tempfile) | null
+    (FileItem | FileItem) | null
   >(null);
   const [fileDB, setFileDB] = useState<ReturnType<typeof getFileDB>>();
 
@@ -30,7 +30,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 检查是否有未保存的更改
   const hasUnsavedChanges = openFiles.some(
-    (file) => "isTemp" in file && file.isDirty
+    (file) => file.isTemp && file.isDirty
   );
 
   // 修改自动保存功能
@@ -72,16 +72,21 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
         file_references: [],
       });
 
-      setOpenFiles((prev) => prev.map((f) => (f.id === fileId ? newFile : f)));
+      setOpenFiles((prev) => prev.map((f) => 
+        f.id === fileId 
+          ? { ...newFile }
+          : f
+      ));
+      
       setCurrentEditingFile(newFile);
 
       dispatchFileEvent(FILE_EVENTS.CREATED, {
-        file: newFile as Tempfile,
+        file: newFile,
       });
 
       await refreshFiles();
       onComplete?.();
-      return newFile as Tempfile;
+      return newFile;
     } catch (error) {
       console.error("Error saving file:", error);
       throw error;
@@ -105,7 +110,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   const discardChanges = (fileId: string) => {
     const file = openFiles.find((f) => f.id === fileId);
     if (!file) return;
-    if ("isTemp" in file && file.isDirty) {
+    if (file.isTemp && file.isDirty) {
       // 如果是临时文件, 直接删除
       setOpenFiles((prev) => prev.filter((f) => f.id !== fileId));
     } else {
@@ -116,7 +121,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const createDirectory = async (parentId: string, name: string): Promise<Tempfile> => {
+  const createDirectory = async (parentId: string, name: string): Promise<FileItem> => {
     return await getFileDB().createFile({
       id: `dir_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       name,
@@ -128,14 +133,14 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   // 修改创建本地文件的方法
-  const createTempFile = (
+  const createFileItem = (
     parentId: string | null = null  
-  ): Promise<Tempfile> => {
+  ): Promise<FileItem> => {
     // 生成唯一的本地文件 ID
     const uniqueId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     // 创建本地文件对象
-    const tempFile: Tempfile = {
+    const FileItem: FileItem = {
       id: uniqueId,
       name: `untitled.md`,
       type: 'file',
@@ -149,9 +154,9 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     // 使用 Promise 确保状态更新的顺序性
-    return new Promise<Tempfile>((resolve) => {
+    return new Promise<FileItem>((resolve) => {
       // 先更新 IndexedDB
-      fileDB?.createFile(tempFile)
+      fileDB?.createFile(FileItem)
         .then(() => {
           // 然后更新状态
 
@@ -161,21 +166,21 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
             if (prev.some(f => f.id === uniqueId)) {
               return prev;
             }
-            return [...prev, tempFile];
+            return [...prev, FileItem];
           });
           
-          setCurrentEditingFile(tempFile);
+          setCurrentEditingFile(FileItem);
 
           // 触发事件
           dispatchFileEvent(FILE_EVENTS.OPENED, {
-            file: tempFile,
+            file: FileItem,
           });
 
-          resolve(tempFile);
+          resolve(FileItem);
         })
         .catch(error => {
           console.error("Error creating local file:", error);
-          resolve(tempFile); // 即使出错也返回文件对象
+          resolve(FileItem); // 即使出错也返回文件对象
         });
     });
   };
@@ -227,7 +232,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
         case FILE_EVENTS.CREATED:
           setOpenFiles((prev) => {
             const filteredFiles = prev.filter(
-              (f) => "isTemp" in f || f.id !== file.id
+              (f) => file.isTemp || f.id !== file.id
             );
             return [file, ...filteredFiles];
           });
@@ -354,7 +359,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
       );
     }
 
-    if ("isTemp" in file) {
+    if (file.isTemp) {
       console.log("FileContext: Cleaning up local file");
       // 如果是本地文件，从文件表中删除
 
@@ -407,7 +412,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
         openFiles,
         createFile,
         refreshFiles,
-        createTempFile,
+        createFileItem,
         createDirectory,
         saveFile,
         updateFileContent,

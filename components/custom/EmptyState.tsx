@@ -8,7 +8,7 @@ import { useFiles } from '@/contexts/FileContext'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { FileItem, Tempfile } from '@/types/file'
+import { FileItem } from '@/types/file'
 
 // 支持的文件格式说明
 const SUPPORTED_FORMATS = [
@@ -17,11 +17,11 @@ const SUPPORTED_FORMATS = [
 ]
 
 export const EmptyState: React.FC = () => {
-  const { refreshFiles, createTempFile, saveFile, selectFile } = useFiles()
+  const { refreshFiles, createFileItem, saveFile, selectFile } = useFiles()
   const [showUploadDialog, setShowUploadDialog] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [isCreating, setIsCreating] = React.useState(false)
-  const [recentFiles, setRecentFiles] = React.useState<(FileItem | Tempfile)[]>([])
+  const [recentFiles, setRecentFiles] = React.useState<(FileItem | FileItem)[]>([])
 
   // 加载最近文件
   useEffect(() => {
@@ -56,7 +56,7 @@ export const EmptyState: React.FC = () => {
     try {
       let lastCreatedFile = null
       for (const file of files) {
-        const localFile = await createTempFile(null)
+        const localFile = await createFileItem(null)
         if (!localFile) continue
 
         const content = await file.text()
@@ -86,7 +86,7 @@ export const EmptyState: React.FC = () => {
   const handleCreateFile = async () => {
     setIsCreating(true);
     try {
-      const localFile = await createTempFile(null);
+      const localFile = await createFileItem(null);
       if (!localFile) return;
       setError(null);
     } catch (error) {
@@ -114,7 +114,7 @@ export const EmptyState: React.FC = () => {
   })
 
   // 处理最近文件点击
-  const handleRecentFileClick = (file: FileItem | Tempfile) => {
+  const handleRecentFileClick = (file: FileItem | FileItem) => {
     selectFile(file)
   }
 

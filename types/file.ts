@@ -9,15 +9,9 @@ export interface BaseFileItem {
     updated_at: string;
     file_references?: string[];
     md5?: string;
+    isTemp?: boolean;
   }
 
-// 本地临时文件
-export interface Tempfile extends BaseFileItem {
-    isTemp?: boolean;
-    isDirty?: boolean;
-    lastSaved?: number;
-    lastAutoSave?: string;
-  }
 
 // 已保存的文件
 export interface FileItem extends BaseFileItem {
@@ -30,7 +24,7 @@ type ValueOf<T> = T[keyof T];
 export type FileEventType = ValueOf<typeof FILE_EVENTS>;
 
 export interface FileEventDetail {
-  file: Tempfile | FileItem;
+  file:  FileItem;
   content?: string;
   previousId?: string; // 用于重命名/移动操作
 }
@@ -45,19 +39,19 @@ export interface FileContextType {
   createFile: (file: BaseFileItem & { id: string }) => Promise<FileItem>;
   updateFile: (file: BaseFileItem & { id: string }) => Promise<FileItem>;
   refreshFiles: () => Promise<BaseFileItem[]>;
-  createTempFile: (
+  createFileItem: (
     parentId?: string | null
-  ) => Promise<Tempfile>;
+  ) => Promise<FileItem>;
   createDirectory: (
     parentId: string,
     name: string
-  ) => Promise<Tempfile>;
+  ) => Promise<FileItem>;
   saveFile: (
     fileId: string,
     content: string,
     newFileName: string,
     onComplete?: () => void
-  ) => Promise<Tempfile>;
+  ) => Promise<FileItem>;
   updateFileContent: (fileId: string, content: string, file_references: string[]) => void;
   deleteFile: (fileId: string) => void;
   getFileContent: (fileId: string) => Promise<string | undefined>;
@@ -66,10 +60,10 @@ export interface FileContextType {
   setAutoSaveInterval: (interval: number) => void;
   discardChanges: (fileId: string) => void;
   closeFile: (fileId: string) => void;
-  selectFile: (file: FileItem | Tempfile) => void;
-  openFiles: (FileItem | Tempfile)[]; // 添加打开的文件列表
-  currentEditingFile: (FileItem | Tempfile) | null; // 添加当前编辑的文件
-  setCurrentEditingFile: (file: (FileItem | Tempfile) | null) => void; // 添加设置当前编辑文件的方法
+  selectFile: (file: FileItem | FileItem) => void;
+  openFiles: (FileItem | FileItem)[]; // 添加打开的文件列表
+  currentEditingFile: (FileItem | FileItem) | null; // 添加当前编辑的文件
+  setCurrentEditingFile: (file: (FileItem | FileItem) | null) => void; // 添加设置当前编辑文件的方法
   updateFileReferences: (fileId: string, references: string[]) => Promise<void>;
   getFileReferences: (fileId: string) => Promise<string[]>;
 }

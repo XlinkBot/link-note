@@ -44,7 +44,6 @@ import { getCompletions } from '@/lib/llm-client'
 import { FileItem } from '@/types/file'
 interface TextEditorProps {
   fileId: string;
-  isTemp: boolean;
   onEditorCreate: (editor: Editor) => void;
   onChange: (hasChanges: boolean) => void;
   onToggleTableOfContents: () => void;
@@ -57,7 +56,6 @@ interface TextEditorProps {
 
 const TextEditor = React.memo<TextEditorProps>(({ 
   fileId,
-  isTemp,
   onEditorCreate,
   onChange,
   onToggleTableOfContents,
@@ -270,8 +268,10 @@ const TextEditor = React.memo<TextEditorProps>(({
   const handleSave = async () => {
     if (!editor || isSaving) return;
     
+    const file = files.find(f => f.id === fileId)
+    if (!file) return;
     // 如果是临时文件，显示保存对话框
-    if (isTemp) {
+    if (file.isTemp) {
       setShowSaveDialog(true);
       return;
     }
@@ -282,7 +282,7 @@ const TextEditor = React.memo<TextEditorProps>(({
       const references = editor.storage.references?.references || [];
       
       // 使用 FileContext 的 updateFileContent 方法更新文件
-      await updateFileContent(fileId, markdown, references);
+      updateFileContent(fileId, markdown, references);
       
       editor.storage.hasChanges = false;
       setLastSaved(new Date());

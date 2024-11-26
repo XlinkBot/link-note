@@ -8,13 +8,13 @@ import { Editor } from '@tiptap/react'
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { FileText, Clock } from "lucide-react"
 
-import { FileItem, Tempfile } from '@/types/file'
+import { FileItem } from '@/types/file'
 
 interface EditorContainerProps {
   fileId: string
   isTemp: boolean
   onChangeState: (state: { hasChanges: boolean }) => void
-  onFileSaved?: (newFile: FileItem | Tempfile) => void
+  onFileSaved?: (newFile: FileItem | FileItem) => void
 }
 
 export const EditorContainer: React.FC<EditorContainerProps> = ({
@@ -57,7 +57,6 @@ export const EditorContainer: React.FC<EditorContainerProps> = ({
           <div className="flex-1 overflow-auto">
             <TextEditor
               fileId={fileId}
-              isTemp={isTemp}
               onEditorCreate={handleEditorCreate}
               onChange={handleEditorChange}
               onToggleTableOfContents={() => setShowTableOfContents(!showTableOfContents)}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { EditorContainer } from '@/components/custom/editor/EditorContainer'
 import { cn } from "@/lib/utils"
-import { FileItem, Tempfile } from '@/types/file'
+import { FileItem } from '@/types/file'
 
 export const EditorWrapper: React.FC = () => {
   
@@ -53,19 +53,12 @@ export const EditorWrapper: React.FC = () => {
     }
   }
 
-  const handleFileSaved = (newFile: FileItem | Tempfile) => {
+  const handleFileSaved = (newFile: FileItem | FileItem) => {
     console.log('EditorWrapper: handleFileSaved', newFile)
-    if ('isLocal' in newFile) {
-      setContainers(prev => ({
-        ...prev,
-        [newFile.id]: { hasChanges: false }
-      }))
-    }else{
-      setContainers(prev => ({
-        ...prev,
-        [newFile.id]: { hasChanges: false }
-      }))
-    }
+    setContainers(prev => ({
+      ...prev,
+      [newFile.id]: { hasChanges: false }
+    }))
   }
 
   // 如果没有打开的文件，显示空状态
@@ -128,7 +121,7 @@ export const EditorWrapper: React.FC = () => {
               >
                 <EditorContainer
                   fileId={file.id}
-                  isTemp={ 'isTemp' in file || false}
+                  isTemp={ file.isTemp || false}
                   onChangeState={(state) => {
                     setContainers(prev => ({
                       ...prev,
