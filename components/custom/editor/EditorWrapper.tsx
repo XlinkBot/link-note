@@ -121,7 +121,6 @@ export const EditorWrapper: React.FC = () => {
               >
                 <EditorContainer
                   fileId={file.id}
-                  isTemp={ file.isTemp || false}
                   onChangeState={(state) => {
                     setContainers(prev => ({
                       ...prev,

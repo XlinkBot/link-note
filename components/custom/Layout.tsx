@@ -6,8 +6,6 @@ import { EditorWrapper } from '@/components/custom/editor/EditorWrapper'
 import { DocumentIndexer } from '@/components/custom/DocumentIndexer'
 import { PromptConfig } from '@/components/custom/PromptConfig'
 import { IndexProvider } from '@/contexts/IndexContext'
-import Link from 'next/dist/client/link'
-import { Button } from '../ui/button'
 
 interface LayoutProps {
   children: React.ReactNode

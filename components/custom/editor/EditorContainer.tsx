@@ -12,14 +12,12 @@ import { FileItem } from '@/types/file'
 
 interface EditorContainerProps {
   fileId: string
-  isTemp: boolean
   onChangeState: (state: { hasChanges: boolean }) => void
   onFileSaved?: (newFile: FileItem | FileItem) => void
 }
 
 export const EditorContainer: React.FC<EditorContainerProps> = ({
   fileId,
-  isTemp,
   onChangeState,
   onFileSaved,
 }) => {
