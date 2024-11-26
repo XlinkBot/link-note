@@ -327,7 +327,7 @@ const TextEditor = React.memo<TextEditorProps>(({
         try {
           console.log('Triggering auto-complete')
           editor.chain().focus().run()
-          editor.storage.autoComplete = { isLoading: true }
+          editor.commands.setLoading(true)
 
           const variables = await buildPromptVariables(
             editor.storage.fileId,
@@ -349,10 +349,10 @@ const TextEditor = React.memo<TextEditorProps>(({
           })
 
           console.log('Received suggestion:', suggestion)
-          editor.storage.autoComplete = { suggestion }
+          editor.commands.setSuggestion(suggestion)
         } catch (error) {
           console.error('Error getting suggestion:', error)
-          editor.storage.autoComplete = { suggestion: null }
+          editor.commands.clearSuggestion()
         }
       }
     }
@@ -392,7 +392,7 @@ const TextEditor = React.memo<TextEditorProps>(({
       if (e.key === 'Tab' && editor.storage.autoComplete?.suggestion) {
         e.preventDefault()
         console.log('Tab pressed, accepting suggestion')
-        editor.storage.autoComplete = { suggestion: null }
+        editor.commands.acceptSuggestion()
         return
       }
 
@@ -407,7 +407,7 @@ const TextEditor = React.memo<TextEditorProps>(({
 
         if (!ignoredKeys.includes(e.key)) {
           console.log('Other key pressed, clearing suggestion')
-          editor.storage.autoComplete = { suggestion: null }
+          editor.commands.clearSuggestion()
         }
       }
     }
@@ -418,7 +418,7 @@ const TextEditor = React.memo<TextEditorProps>(({
       
       if (editor.storage.autoComplete?.suggestion || editor.storage.autoComplete?.isLoading) {
         console.log('Click detected, clearing suggestion')
-        editor.storage.autoComplete = { suggestion: null }
+        editor.commands.clearSuggestion()
       }
     }
 
@@ -427,7 +427,7 @@ const TextEditor = React.memo<TextEditorProps>(({
       if (!editor) return;
       
       if (editor.storage.autoComplete?.suggestion || editor.storage.autoComplete?.isLoading) {
-        editor.storage.autoComplete = { suggestion: null }
+        editor.commands.clearSuggestion()
       }
     }
 

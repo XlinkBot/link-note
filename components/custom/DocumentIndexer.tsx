@@ -4,9 +4,10 @@ import { useEffect, useRef, useCallback } from 'react'
 import elasticlunr from 'elasticlunr'
 import { calculateMD5 } from '@/lib/md5'
 import { useIndex } from '@/contexts/IndexContext'
-import { fileDB } from '@/lib/indexeddb'
+import { getFileDB } from '@/lib/indexeddb'
 import { BaseFileItem } from '@/types/file'
 
+const fileDB = getFileDB()
 interface IndexState {
   lastUpdated: number
   serializedIndex: string
@@ -44,7 +45,7 @@ export const DocumentIndexer = () => {
     }
 
     try {
-      const fileData = await fileDB.getFile(file.id)
+      const fileData = await fileDB?.getFile(file.id)
       if (!fileData?.content) return true
       
       const currentHash = await calculateMD5(fileData.content)
@@ -61,8 +62,8 @@ export const DocumentIndexer = () => {
     try {
       setIsIndexing(true)
 
-      const files = await fileDB.listFiles()
-      const textFiles = files.filter(f => f.type === 'file')
+      const files = await fileDB?.listFiles()
+      const textFiles = files?.filter(f => f.type === 'file')
       
       const indexState = loadIndexState()
 

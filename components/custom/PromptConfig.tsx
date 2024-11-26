@@ -24,9 +24,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { fileDB } from '@/lib/indexeddb'
+import { getFileDB } from '@/lib/indexeddb'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+
+const fileDB = getFileDB()
 interface PromptConfig {
   id: string;
   model_provider: string;

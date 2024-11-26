@@ -1,10 +1,23 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { Editor } from '@tiptap/core'
+import { Command } from '@tiptap/core'
 
 interface AutoCompleteOptions {
   suggestion: string | null
   isLoading?: boolean
+}
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    autoComplete: {
+      setSuggestion: (suggestion: string | null) => Command
+      setLoading: (isLoading: boolean) => Command
+      acceptSuggestion: () => Command
+      clearSuggestion: () => Command
+    }
+  }
 }
 
 export const AutoComplete = Extension.create<AutoCompleteOptions>({
@@ -26,16 +39,19 @@ export const AutoComplete = Extension.create<AutoCompleteOptions>({
 
   addCommands() {
     return {
-      setSuggestion: (suggestion: string | null) => ({ editor }) => {
+      setSuggestion: (suggestion: string | null): Command => ({ editor }) => {
         editor.storage.autoComplete.suggestion = suggestion
         editor.storage.autoComplete.isLoading = false
         return true
       },
-      setLoading: (isLoading: boolean) => ({ editor }) => {
+
+      setLoading: (isLoading: boolean): Command => ({ editor }) => {
         editor.storage.autoComplete.isLoading = isLoading
+        console.log('[AutoComplete] setLoading', isLoading)
         return true
       },
-      acceptSuggestion: () => ({ editor, tr }) => {
+
+      acceptSuggestion: (): Command => ({ editor, tr }) => {
         const suggestion = editor.storage.autoComplete.suggestion
         if (!suggestion) return false
         
@@ -47,7 +63,8 @@ export const AutoComplete = Extension.create<AutoCompleteOptions>({
         
         return true
       },
-      clearSuggestion: () => ({ editor }) => {
+
+      clearSuggestion: (): Command => ({ editor }) => {
         editor.storage.autoComplete.suggestion = null
         editor.storage.autoComplete.isLoading = false
         return true
@@ -72,13 +89,15 @@ export const AutoComplete = Extension.create<AutoCompleteOptions>({
 
             const suggestion = this.editor?.storage.autoComplete.suggestion
             const isLoading = this.editor?.storage.autoComplete.isLoading
-            
-            if (!suggestion && !isLoading) return DecorationSet.empty
+            console.log('[AutoComplete] suggestion', suggestion)
+            console.log('[AutoComplete] isLoading', isLoading)
+            //if (!suggestion && !isLoading) return DecorationSet.empty
             
             const pos = tr.selection.$head.pos
             const decorations: Decoration[] = []
-
+           
             if (isLoading) {
+              console.log('[AutoComplete] isLoading pushing loading icon', isLoading)
               const loadingWidget = document.createElement('span')
               loadingWidget.className = 'auto-complete-loading'
               decorations.push(

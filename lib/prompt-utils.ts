@@ -1,4 +1,4 @@
-import { fileDB } from './indexeddb';
+import { getFileDB } from './indexeddb';
 
 interface PromptVariables {
   selection?: string;   // 选中的文本
@@ -48,7 +48,7 @@ export const generatePrompt = async (
   variables: PromptVariables
 ): Promise<ProcessedPrompt> => {
   // 获取配置
-  const config = await fileDB.getConfig();
+  const config = await getFileDB().getConfig();
 
   // 根据类型选择相应的配置
   const promptConfig = type === 'autocomplete' 
@@ -91,10 +91,10 @@ export const validatePromptTemplate = (template: string): string[] => {
 // 辅助函数：获取文件的引用内容
 export const getFileReferences = async (fileId: string): Promise<string[]> => {
   try {
-    const refs = await fileDB.listReferences(fileId);
+    const refs = await getFileDB().listReferences(fileId);
     const refContents = await Promise.all(
       refs.map(async (refId) => {
-        const file = await fileDB.getFile(refId);
+        const file = await getFileDB().getFile(refId);
         return file?.content || '';
       })
     );

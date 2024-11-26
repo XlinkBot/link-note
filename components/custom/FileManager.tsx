@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, File, Folder, Upload, Plus, Download, Trash, Edit, ChevronRight, ChevronDown, FileText, FileCode, FileSpreadsheet} from "lucide-react"
@@ -32,7 +32,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useFiles, fileEvents } from '@/contexts/FileContext'
 
-import { FileItem , FILE_EVENTS} from '@/types/file'
+import { FileItem , FILE_EVENTS, FileEventDetail} from '@/types/file'
 
 import {  FileSearch as  FileSearchComponent} from './FileSearch'
 
@@ -75,52 +75,63 @@ export const FileManager: React.FC = () => {
   const [showUploadDialog, setShowUploadDialog] = useState(false)
   const [uploadTargetFolder, setUploadTargetFolder] = useState<string | null>(null)
 
-
-
-  const fetchFiles = async () => {
-    console.log("[FileManager] fetchFiles called from:", new Error().stack);
+  // 使用 useCallback 包装 fetchFiles
+  const fetchFiles = useCallback(async () => {
+    console.log("[FileManager] fetchFiles called");
     setIsLoading(true)
     try {
       const filesData = await refreshFiles()
-      console.log("[FileManager] Received files:", filesData);
-      setFiles(filesData)
+      console.log("[FileManager] Received files before filtering:", filesData);
+      // 过滤掉临时文件
+      const permanentFiles = filesData.filter(file => !('isTemp' in file) || !file.isTemp);
+      console.log("[FileManager] Received files:", permanentFiles);
+      setFiles(permanentFiles)
     } catch (error) {
       console.error('[FileManager] Error fetching files:', error)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [refreshFiles]);
 
+  // 组件挂载时获取文件
   useEffect(() => {
     console.log("[FileManager] Component mounted");
-    fetchFiles()
-  })
+    fetchFiles();
+  }, [fetchFiles]);
 
   useEffect(() => {
     if (currentEditingFile) {
-      let currentFile = files.find(f => f.id === currentEditingFile.id)
-      while (currentFile?.parent_id) {
+      let currentFile = files.find(f => f.id === currentEditingFile.id);
+      
+      // 添加空值检查
+      while (currentFile && currentFile.parent_id) {
         setExpandedFolders(prev => {
           const newSet = new Set(prev);
-          newSet.add(currentFile!.parent_id!);
+          // 确保 parent_id 存在再添加
+          if (currentFile?.parent_id) {
+            newSet.add(currentFile.parent_id);
+          }
           return newSet;
         });
-        currentFile = files.find(f => f.id === currentFile!.parent_id)
+        
+        // 查找父文件夹，添加可选链操作符
+        currentFile = files.find(f => f.id === currentFile?.parent_id);
       }
     }
-  }, [currentEditingFile, files])
+  }, [currentEditingFile, files]);
 
   useEffect(() => {
     setExpandedFolders(prev => {
-      const expanded = new Set(prev)
+      const expanded = new Set(prev);
+      // 添加类型检查和空值处理
       files.forEach(file => {
-        if (file.type === 'folder') {
-          expanded.add(file.id)
+        if (file && file.type === 'folder' && file.id) {
+          expanded.add(file.id);
         }
-      })
-      return expanded
-    })
-  }, [files])
+      });
+      return expanded;
+    });
+  }, [files]);
 
 
 
@@ -493,60 +504,46 @@ export const FileManager: React.FC = () => {
     return parts.join(' / ')
   }
 
-  // 听文件事并直接使用 contextFiles
-  useEffect(() => {
-    console.log('Context files updated:', files)
-    refreshFiles().then(setFiles)
-  }, [files, refreshFiles])
-
-  // 修改事件监听
+  // 监听文件事件
   useEffect(() => {
     const handleFileEvent = (event: Event) => {
-      const fileEvent = event as CustomEvent
-      const { type, detail } = fileEvent
-      const { previousId } = detail
+      const fileEvent = event as CustomEvent;
+      const { type } = fileEvent;
 
-      console.log('FileManager: Received file event:', { type, detail })
+      const refreshEvents = [
+        FILE_EVENTS.CREATED,
+        FILE_EVENTS.DELETED,
+        FILE_EVENTS.UPDATED,
+        FILE_EVENTS.MOVED,
+        FILE_EVENTS.RENAMED,
+      ] as const;
 
-      switch (type) {
-        case FILE_EVENTS.CREATED:
-          if (previousId) {
-            // 如果有 previousId，说明这是一个本地文件保存为服务器文件的操作
-            setFiles(files)
-            // 自动选中新文件
-            //selectFile(file)
-          }
-          break
-        case FILE_EVENTS.DELETED:
-          setFiles(files)
-          break
-        case FILE_EVENTS.UPDATED:
-          setFiles(files)
-          break
-        case FILE_EVENTS.MOVED:
-          setFiles(files)
-          break
+      if (refreshEvents.includes(type as typeof refreshEvents[number])) {
+        const file = (fileEvent as CustomEvent<FileEventDetail>).detail?.file;
+        if (!file || !file.id.startsWith('local_')) {
+          fetchFiles();
+        }
       }
-    }
+    };
 
-    // 只监听需要的事件
     const eventsToListen = [
-      FILE_EVENTS.CREATED,  // 添加 CREATED 事件的监听
+      FILE_EVENTS.CREATED,
       FILE_EVENTS.DELETED,
       FILE_EVENTS.UPDATED,
-      FILE_EVENTS.MOVED
-    ]
+      FILE_EVENTS.MOVED,
+      FILE_EVENTS.RENAMED,
+    ] as const;
 
     eventsToListen.forEach(eventType => {
-      fileEvents.addEventListener(eventType, handleFileEvent)
-    })
+      fileEvents.addEventListener(eventType, handleFileEvent);
+    });
 
     return () => {
       eventsToListen.forEach(eventType => {
-        fileEvents.removeEventListener(eventType, handleFileEvent)
-      })
-    }
-  }, [files, selectFile])
+        fileEvents.removeEventListener(eventType, handleFileEvent);
+      });
+    };
+  }, [fetchFiles]);
 
   // 修改文件选择处理
   const handleFileSelect = (file: FileItem ) => {

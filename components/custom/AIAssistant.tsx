@@ -9,13 +9,17 @@ import { EditorContent, Editor } from '@tiptap/react'
 import { createMessageEditor } from '@/lib/utils'
 import { getStreamingCompletion } from '@/lib/llm-client'
 import { generatePrompt, buildPromptVariables } from '@/lib/prompt-utils'
-import { fileDB } from '@/lib/indexeddb'
+import { getFileDB } from '@/lib/indexeddb'
+
+
+const fileDB = getFileDB()
 
 interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: number
+  fileId: string
 }
 
 interface AIAssistantProps {
@@ -24,7 +28,7 @@ interface AIAssistantProps {
   selectedText: string
   onAIResponse: (response: string) => void
   context: {
-    fileId?: string
+    fileId: string
     fileName?: string
     content?: string
   }
@@ -44,7 +48,7 @@ const Message: React.FC<{
       if (editor) {
         editor.chain()
           .focus()
-          .insertContent(text)
+          .insertContent('\n' + text)
           .run()
       }
     }
@@ -97,7 +101,7 @@ const Message: React.FC<{
                     if (editor) {
                       editor.chain()
                         .focus()
-                        .insertContent(content)
+                        .insertContent('\n' + content)
                         .run()
                     }
                   }}
@@ -146,32 +150,32 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
   useEffect(() => {
     const loadMessages = async () => {
       if (!context.fileId) return
-      const fileMessages = await fileDB.listChatMessages(context.fileId)
-      setMessages(fileMessages)
+      const fileMessages = await fileDB?.listChatMessages(context.fileId)
+      setMessages(fileMessages || [])
     }
     loadMessages()
   }, [context.fileId])
 
-  // 添加刷新会话的处理函数
+  // 修改刷新会话的处理函数
   const handleRefreshSession = async () => {
-    if (!context.fileId || isLoading) return
+    if (!context.fileId || isLoading) return;
     
     try {
       // 清除数据库中的聊天记录
-      await fileDB.clearChatMessages(context.fileId)
+      await fileDB?.clearChatMessages(context.fileId);
       // 清除状态中的消息
-      setMessages([])
+      setMessages([]);
       // 清空输入框
-      setInputValue('')
+      setInputValue('');
     } catch (error) {
-      console.error('Error refreshing session:', error)
+      console.error('Error refreshing session:', error);
     }
-  }
+  };
 
   const handleSubmit = async () => {
-    if (!inputValue.trim() || isLoading) return
+    if (!inputValue.trim() || isLoading || !context.fileId) return;
 
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       // 创建用户消息
       const userMessage: ChatMessage = {
@@ -179,42 +183,46 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
         role: 'user',
         content: inputValue,
         timestamp: Date.now(),
-      }
-      setMessages(prev => [...prev, userMessage])
+        fileId: context.fileId
+      };
+
+      // 保存用户消息到 IndexedDB
+      await fileDB?.addChatMessage(userMessage);
+      setMessages(prev => [...prev, userMessage]);
 
       // 构建提示词变量
       const variables = await buildPromptVariables(
-        context.fileId || '',
+        context.fileId,
         context.content || '',
         selectedText,
-      )
+      );
 
       // 生成系统提示词
-      const { prompt: systemPrompt, temperature, maxTokens } = await generatePrompt('chat', variables)
+      const { prompt: systemPrompt, temperature, maxTokens } = await generatePrompt('chat', variables);
 
       // 构建符合 OpenAI 格式的消息历史
       const apiMessages = [
-        // 系统提示词
         { role: 'system', content: systemPrompt },
-        // 历史消息
         ...messages.map(msg => ({
           role: msg.role === 'user' ? 'user' : 'assistant',
           content: msg.content
         })),
-        // 当前问题
         { role: 'user', content: inputValue }
-      ]
+      ];
 
       // 创建助手消息
+      const assistantMessageId = (Date.now() + 1).toString();
       const assistantMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: assistantMessageId,
         role: 'assistant',
         content: '',
         timestamp: Date.now(),
-      }
-      setMessages(prev => [...prev, assistantMessage])
+        fileId: context.fileId
+      };
 
-      // 调用 LLM API
+      let fullResponse = '';
+
+      // 修改流式响应处理
       await getStreamingCompletion(
         systemPrompt,
         {
@@ -222,32 +230,47 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
           max_tokens: maxTokens,
           messages: apiMessages as { role: 'user' | 'assistant' | 'system'; content: string }[]
         },
-        (chunk: string) => {
+        async (chunk: string) => {
+          fullResponse += chunk;
+          
+          // 只更新状态，不保存到数据库
           setMessages(prev => {
-            const lastMessage = prev[prev.length - 1]
+            const lastMessage = prev[prev.length - 1];
             if (lastMessage.role === 'assistant') {
               return [
                 ...prev.slice(0, -1),
-                { 
-                  ...lastMessage, 
-                  content: lastMessage.content + chunk 
-                }
-              ]
+                { ...lastMessage, content: fullResponse }
+              ];
             }
-            return prev
-          })
+            return prev;
+          });
         }
-      )
+      );
 
-      // 清空输入
-      setInputValue('')
+      // 流式响应完成后，一次性保存完整的消息
+      const finalMessage: ChatMessage = {
+        ...assistantMessage,
+        content: fullResponse,
+        timestamp: Date.now()
+      };
+
+      // 保存完整的助手消息
+      await fileDB?.addChatMessage(finalMessage);
+
+      // 更新状态为最终消息
+      setMessages(prev => [
+        ...prev.slice(0, -1),
+        finalMessage
+      ]);
+
+      setInputValue('');
 
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Error:', error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col h-full">

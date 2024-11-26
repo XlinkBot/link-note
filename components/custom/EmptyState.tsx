@@ -329,9 +329,14 @@ export const EmptyState: React.FC = () => {
               <TooltipProvider key={format.extension}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="secondary" className="cursor-help">
-                      {format.extension}
-                    </Badge>
+                    <div>
+                      <Badge 
+                        variant="secondary" 
+                        className="cursor-help"
+                      >
+                        {format.extension}
+                      </Badge>
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-sm">

@@ -1,4 +1,4 @@
-import { fileDB } from './indexeddb';
+import { getFileDB } from './indexeddb';
 import OpenAI from 'openai';
 
 interface CompletionOptions {
@@ -10,6 +10,8 @@ interface CompletionOptions {
   stream?: boolean;
 }
 
+
+
 /**
  * 获取 OpenAI 完成
  */
@@ -17,6 +19,7 @@ export async function getCompletions(
   prompt: string,
   options: CompletionOptions = {}
 ): Promise<string> {
+  const fileDB = getFileDB();
   const config = await fileDB.getConfig();
   
   // 构建消息数组
@@ -82,6 +85,7 @@ export async function getStreamingCompletion(
   options: CompletionOptions = {},
   onChunk?: (chunk: string) => void
 ) {
+  const fileDB = getFileDB();
   const config = await fileDB.getConfig();
   
   // 构建消息数组

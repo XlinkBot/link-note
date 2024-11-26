@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { fileDB } from "@/lib/indexeddb";
+import { getFileDB } from "@/lib/indexeddb";
 import { BaseFileItem } from "@/types/file";
 import { FILE_EVENTS, FileContextType, FileItem, Tempfile } from "@/types/file";
 import { FileEvent, FileEventType, FileEventDetail } from "@/types/file";
@@ -21,6 +21,12 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentEditingFile, setCurrentEditingFile] = useState<
     (FileItem | Tempfile) | null
   >(null);
+  const [fileDB, setFileDB] = useState<ReturnType<typeof getFileDB>>();
+
+  // 在客户端初始化 fileDB
+  useEffect(() => {
+    setFileDB(getFileDB());
+  }, []);
 
   // 检查是否有未保存的更改
   const hasUnsavedChanges = openFiles.some(
@@ -35,7 +41,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
       openFiles.forEach((file) => {
         if (file.isDirty) {
           // 只传入需要更新的属性
-          fileDB.saveFile({
+          fileDB?.saveFile({
             id: file.id,
             content: file.content,
             file_references: file.file_references,
@@ -45,7 +51,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
     }, autoSaveInterval);
 
     return () => clearInterval(autoSaveTimer);
-  }, [openFiles, autoSaveInterval]);
+  }, [openFiles, autoSaveInterval, fileDB]);
 
 
   const saveFile = async (
@@ -55,7 +61,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
     onComplete?: () => void
   ) => {
     try {
-      const newFile = await fileDB.createFile({
+      const newFile = await getFileDB().createFile({
         id: fileId,
         name: newFileName,
         type: "file",
@@ -111,7 +117,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const createDirectory = async (parentId: string, name: string): Promise<Tempfile> => {
-    return await fileDB.createFile({
+    return await getFileDB().createFile({
       id: `dir_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       name,
       type: "folder",
@@ -139,12 +145,13 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
       updated_at: new Date().toISOString(),
       content: '',
       file_references: [],
+      isTemp: true,
     };
 
     // 使用 Promise 确保状态更新的顺序性
     return new Promise<Tempfile>((resolve) => {
       // 先更新 IndexedDB
-      fileDB.createFile(tempFile)
+      fileDB?.createFile(tempFile)
         .then(() => {
           // 然后更新状态
 
@@ -182,6 +189,8 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // 修改文内容更方法
   const updateFileContent = async (fileId: string, content: string, file_references: string[]) => {
+    if (!fileDB) return;
+    
     try {
       await fileDB.updateFile({
         id: fileId,
@@ -189,7 +198,6 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
         file_references,
         updated_at: new Date().toISOString(),
       });
-
     } catch (error) {
       console.error("Error updating file content:", error);
       throw error;
@@ -199,7 +207,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const refreshFiles = async (): Promise<BaseFileItem[]> => {
     try {
-      const files = await fileDB.listFiles();
+      const files = await getFileDB().listFiles();
       
       return files;
     } catch (error) {
@@ -256,7 +264,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   const deleteFile = async (fileId: string) => {
     try {
       // 1. 获取所有文件
-      const allFiles = await fileDB.listFiles();
+      const allFiles = await getFileDB().listFiles();
       
       // 2. 找到所有引用了要删除文件的文件
       const filesReferencingThis = allFiles.filter(file => 
@@ -266,11 +274,11 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
       // 3. 从这些文件中移除对要删除文件的引用
       for (const file of filesReferencingThis) {
         const updatedRefs = file.file_references?.filter(ref => ref !== fileId) || [];
-        await fileDB.updateReferences(file.id, updatedRefs);
+        await fileDB?.updateReferences(file.id, updatedRefs);
       }
 
       // 4. 删除文件本身
-      await fileDB.deleteFile(fileId);
+      await fileDB?.deleteFile(fileId);
 
       // 5. 更新状态
       setOpenFiles(prev => prev.filter(f => f.id !== fileId));
@@ -302,7 +310,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const getFileContent = async (fileId: string) => {
     try {
-      const file = await fileDB.getFile(fileId);
+      const file = await fileDB?.getFile(fileId);
       return file?.content;
     } catch (error) {
       console.error('Error fetching file content:', error);
@@ -311,7 +319,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const getFileReferences = async (fileId: string) => {
-    const references = await fileDB.listReferences(fileId);
+    const references = await fileDB?.listReferences(fileId);
     return references || [];
   };
 
@@ -349,26 +357,25 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
     if ("isTemp" in file) {
       console.log("FileContext: Cleaning up local file");
       // 如果是本地文件，从文件表中删除
+
+      deleteFile(fileId);
+
       setOpenFiles((prev) => {
         const newFiles = prev.filter((f) => f.id !== fileId);
         console.log("FileContext: Updated files:", newFiles);
         return newFiles;
       });
 
-      // 清理自动保存内容
-      if (file.id) {
-        localStorage.removeItem(`autosave-${file.id}`);
-      }
     }
   };
 
   const updateFile = async (file: BaseFileItem & { id: string }): Promise<FileItem> => {
-    await fileDB.updateFile(file);
+    await fileDB?.updateFile(file);
     return file as FileItem;
   }
 
   const createFile = async (file: BaseFileItem & { id: string }): Promise<FileItem> => {
-    await fileDB.createFile(file);
+    await fileDB?.createFile(file);
     return file as FileItem;
   }
 
@@ -388,7 +395,7 @@ export const FileProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateFileReferences = async (fileId: string, references: string[]) => {
-    const file = await fileDB.getFile(fileId);
+    const file = await fileDB?.getFile(fileId);
     if (!file) return;
     file.file_references = references;
   };
